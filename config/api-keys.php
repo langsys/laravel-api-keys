@@ -1,0 +1,72 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Key Model
+    |--------------------------------------------------------------------------
+    |
+    | The Eloquent model used to represent API keys. Extend the bundled model
+    | to add relations (e.g. link keys to your own entities) or override the
+    | permission storage, then point this at your subclass.
+    |
+    */
+    'model' => Langsys\ApiKeys\Models\ApiKey::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Request Header
+    |--------------------------------------------------------------------------
+    |
+    | The HTTP header the AuthenticateApiKey middleware reads the key from.
+    |
+    */
+    'header' => env('API_KEY_HEADER', 'X-Api-Key'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Key Generation & Hashing
+    |--------------------------------------------------------------------------
+    |
+    | Keys are stored only as a hash; the plaintext is returned once at
+    | generation time via the model's transient `$plain_key` property.
+    |
+    */
+    'hash_algorithm' => 'sha256',
+    'key_length' => 64,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Read / Write Enforcement
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, keys of type `read` may only perform safe (GET/HEAD/OPTIONS)
+    | requests; mutating requests require a `write` key.
+    |
+    */
+    'enforce_read_write' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allow Already-Authenticated Users
+    |--------------------------------------------------------------------------
+    |
+    | When no API key header is present but the request already has an
+    | authenticated user (e.g. Sanctum/session), let it through instead of
+    | rejecting it. Set to false to require an API key on guarded routes.
+    |
+    */
+    'allow_authenticated_users' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Permissions
+    |--------------------------------------------------------------------------
+    |
+    | Permission strings automatically granted to every newly created key.
+    |
+    */
+    'default_permissions' => [],
+
+];
