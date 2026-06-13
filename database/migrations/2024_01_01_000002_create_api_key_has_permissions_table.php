@@ -8,23 +8,27 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('api_key_permissions')) {
+        $name = config('api-keys.tables.api_key_has_permissions', 'api_key_has_permissions');
+
+        if (Schema::hasTable($name)) {
             return;
         }
 
-        Schema::create('api_key_permissions', function (Blueprint $table) {
+        Schema::create($name, function (Blueprint $table) {
             $table->id();
             $table->uuid('api_key_id');
             $table->string('permission');
             $table->timestamps();
 
-            $table->foreign('api_key_id')->references('id')->on('api_keys')->cascadeOnDelete();
+            $table->foreign('api_key_id')
+                ->references('id')->on(config('api-keys.tables.api_keys', 'api_keys'))
+                ->cascadeOnDelete();
             $table->unique(['api_key_id', 'permission']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('api_key_permissions');
+        Schema::dropIfExists(config('api-keys.tables.api_key_has_permissions', 'api_key_has_permissions'));
     }
 };

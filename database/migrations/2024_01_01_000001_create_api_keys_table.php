@@ -8,11 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('api_keys')) {
+        $name = config('api-keys.tables.api_keys', 'api_keys');
+
+        if (Schema::hasTable($name)) {
             return;
         }
 
-        Schema::create('api_keys', function (Blueprint $table) {
+        Schema::create($name, function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
             $table->string('key_hash', 128)->unique();
@@ -27,6 +29,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('api_keys');
+        Schema::dropIfExists(config('api-keys.tables.api_keys', 'api_keys'));
     }
 };

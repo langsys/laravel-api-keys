@@ -69,4 +69,18 @@ return [
     */
     'default_permissions' => [],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Table Names
+    |--------------------------------------------------------------------------
+    |
+    | Pivot tables follow the `_has_` convention (matching spatie/laravel-permission
+    | and langsys). Override here if your app uses different names.
+    |
+    */
+    'tables' => [
+        'api_keys' => 'api_keys',
+        'api_key_has_permissions' => 'api_key_has_permissions',
+    ],
+
 ];

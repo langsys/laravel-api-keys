@@ -24,8 +24,6 @@ class ApiKey extends Model
      */
     public ?string $plain_key = null;
 
-    protected $table = 'api_keys';
-
     protected $fillable = ['name', 'type', 'active'];
 
     protected $hidden = ['key_hash'];
@@ -34,6 +32,11 @@ class ApiKey extends Model
         'type' => ApiKeyType::class,
         'active' => 'boolean',
     ];
+
+    public function getTable(): string
+    {
+        return config('api-keys.tables.api_keys', 'api_keys');
+    }
 
     protected static function booted(): void
     {

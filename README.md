@@ -78,28 +78,12 @@ audit table:
 
 ## Using with laravel-access-guard
 
-`access-guard` authorizes a subject against an entity using permission strings.
-An API key satisfies its `AuthorizableByKey` contract with a few lines on your
-own subclass — no hard dependency in either direction:
-
-```php
-use Langsys\AccessGuard\Contracts\AuthorizableByKey;
-
-class ApiKey extends \Langsys\ApiKeys\Models\ApiKey implements AuthorizableByKey
-{
-    public function keyHasPermission(string $permission): bool
-    {
-        return $this->hasPermission($permission);
-    }
-
-    public function keyBelongsToEntity(mixed $entity): bool
-    {
-        return $entity->apiKeys()->whereKey($this->getKey())->exists();
-    }
-}
-```
-
-Point `config('api-keys.model')` at your subclass and you're done.
+Install both and your API keys become first-class authorization subjects with no
+glue code. `access-guard` detects this package and adapts its `ApiKey`
+automatically — checking the key's permissions and whether it's linked to the
+entity being accessed. You link keys to entities on the access-guard side
+(`$entity->grantApiKey($key)`, see its README); no subclassing or contracts
+required here.
 
 ## Testing
 

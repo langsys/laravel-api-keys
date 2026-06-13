@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ApiKeyPermission extends Model
 {
-    protected $table = 'api_key_permissions';
-
     protected $fillable = ['api_key_id', 'permission'];
+
+    public function getTable(): string
+    {
+        return config('api-keys.tables.api_key_has_permissions', 'api_key_has_permissions');
+    }
 
     public function apiKey(): BelongsTo
     {
