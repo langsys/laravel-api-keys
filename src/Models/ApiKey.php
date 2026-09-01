@@ -2,8 +2,9 @@
 
 namespace Langsys\ApiKeys\Models;
 
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -146,9 +147,14 @@ class ApiKey extends Model
         return $name !== null && preg_match('/^[a-z0-9-]{1,255}$/', $name) === 1;
     }
 
-    public function permissions(): HasMany
+    public function permissions(): BelongsToMany
     {
-        return $this->hasMany(ApiKeyPermission::class, 'api_key_id');
+        return $this->belongsToMany(
+            Permission::class,
+            config('api-keys.tables.api_key_has_permissions', 'api_key_has_permissions'),
+            'api_key_id',
+            'permission_id',
+        )->using(ApiKeyPermission::class)->withTimestamps();
     }
 
     /**
@@ -156,46 +162,102 @@ class ApiKey extends Model
      */
     public function permissionValues(): array
     {
-        return $this->permissions()->pluck('permission')->all();
+        return $this->permissions()->pluck('value')->all();
     }
 
-    public function hasPermission(string $permission): bool
+    public function hasPermission(Permission|string|BackedEnum $permission): bool
     {
-        return $this->permissions()->where('permission', $permission)->exists();
+        return $this->permissions()->where('value', static::permissionValue($permission))->exists();
     }
 
     /**
-     * @param string|array<int, string> $permissions
+     * Grant permissions by value, creating any that do not exist yet.
+     *
+     * @param Permission|string|BackedEnum|array<int, Permission|string|BackedEnum> $permissions
      */
-    public function grantPermissions(string|array $permissions): static
+    public function grantPermissions(Permission|string|BackedEnum|array $permissions): static
     {
-        foreach (array_filter((array) $permissions) as $permission) {
-            if (! $this->hasPermission($permission)) {
-                $this->permissions()->create(['permission' => $permission]);
-            }
+        $ids = $this->resolvePermissionIds($permissions);
+
+        if ($ids !== []) {
+            $this->permissions()->syncWithoutDetaching($ids);
         }
 
         return $this;
     }
 
     /**
-     * @param string|array<int, string> $permissions
+     * @param Permission|string|BackedEnum|array<int, Permission|string|BackedEnum> $permissions
      */
-    public function revokePermissions(string|array $permissions): static
+    public function revokePermissions(Permission|string|BackedEnum|array $permissions): static
     {
-        $this->permissions()->whereIn('permission', (array) $permissions)->delete();
+        $values = array_map(
+            static fn ($permission) => static::permissionValue($permission),
+            static::wrapPermissions($permissions),
+        );
+
+        if ($values !== []) {
+            $this->permissions()->detach(
+                Permission::query()->whereIn('value', $values)->pluck('id')->all()
+            );
+        }
 
         return $this;
     }
 
     /**
-     * @param array<int, string> $permissions
+     * @param array<int, Permission|string|BackedEnum> $permissions
      */
     public function syncPermissions(array $permissions): static
     {
-        $this->permissions()->whereNotIn('permission', $permissions ?: [''])->delete();
+        $this->permissions()->sync($this->resolvePermissionIds($permissions));
 
-        return $this->grantPermissions($permissions);
+        return $this;
+    }
+
+    /**
+     * @param Permission|string|BackedEnum|array<int, Permission|string|BackedEnum> $permissions
+     * @return array<int, string>
+     */
+    protected function resolvePermissionIds(Permission|string|BackedEnum|array $permissions): array
+    {
+        $ids = [];
+
+        foreach (static::wrapPermissions($permissions) as $permission) {
+            $value = static::permissionValue($permission);
+
+            if ($value === '') {
+                continue;
+            }
+
+            $ids[] = Permission::query()->firstOrCreate(['value' => $value])->getKey();
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    protected static function permissionValue(Permission|string|BackedEnum $permission): string
+    {
+        return match (true) {
+            $permission instanceof Permission => (string) $permission->value,
+            $permission instanceof BackedEnum => (string) $permission->value,
+            default => $permission,
+        };
+    }
+
+    /**
+     * @return array<int, Permission|string|BackedEnum>
+     */
+    protected static function wrapPermissions(Permission|string|BackedEnum|array $permissions): array
+    {
+        if (! is_array($permissions)) {
+            return [$permissions];
+        }
+
+        return array_values(array_filter(
+            $permissions,
+            static fn ($permission) => $permission !== null && $permission !== ''
+        ));
     }
 
     public function canWrite(): bool

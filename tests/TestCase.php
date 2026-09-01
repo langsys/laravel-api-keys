@@ -19,6 +19,9 @@ abstract class TestCase extends Orchestra
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
+            // Off by default on SQLite, which would let the suite pass while
+            // the foreign keys the migrations declare do nothing.
+            'foreign_key_constraints' => true,
         ]);
     }
 

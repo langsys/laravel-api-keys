@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Langsys\ApiKeys\Support\SchemaGuard;
 
 return new class extends Migration
 {
@@ -10,7 +11,7 @@ return new class extends Migration
     {
         $name = config('api-keys.tables.api_keys', 'api_keys');
 
-        if (Schema::hasTable($name)) {
+        if (! SchemaGuard::shouldCreate($name, ['id', 'name', 'key_hash', 'type', 'active'], 'a uuid `id` primary key, plus `name`, `key_hash`, `type` and `active`')) {
             return;
         }
 

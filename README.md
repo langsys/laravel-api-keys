@@ -15,9 +15,11 @@ php artisan vendor:publish --tag=api-keys-config   # optional
 php artisan migrate
 ```
 
-The migrations are guarded with `Schema::hasTable()` / `Schema::hasColumn()`
-checks, so publishing them into an app that already has `api_keys` tables — or
-already has the `ip_allowlist` column — is a safe no-op.
+The migrations skip tables your application already has, so publishing them into
+an app that already models API keys or permissions is a safe no-op. A table that
+exists with an *incompatible* shape is not skipped silently — the migration fails
+with the table name and the missing columns, rather than installing cleanly and
+failing later at query time.
 
 ## Creating keys
 
@@ -143,13 +145,34 @@ write. If you must keep your own enum for `type`, cast to it and set
 
 ## Permissions
 
-Keys carry a flat list of permission strings (think OAuth scopes):
+Keys are granted permissions by value (think OAuth scopes):
 
 ```php
 $key->grantPermissions(['view_projects', 'edit_projects']);
 $key->hasPermission('view_projects'); // true
 $key->revokePermissions('edit_projects');
 $key->syncPermissions(['view_projects']);
+$key->permissionValues();             // ['view_projects']
+```
+
+Permissions are stored **once** as rows in a shared `permissions` table
+(`id`, `value`, `label`) and referenced from `api_key_has_permissions` by
+`permission_id`. `grantPermissions()` creates any value that doesn't exist yet,
+and `revokePermissions()` detaches the key without deleting the shared row.
+
+This is deliberately the same table and shape that
+[`langsys/laravel-access-guard`](https://github.com/langsys/laravel-access-guard)
+uses for role and model permissions, so an application running both packages has
+one row per permission rather than one representation per package. Whichever
+package migrates first creates the table; the other skips it.
+
+Anywhere a permission is accepted you may pass a value, a backed enum, or a
+`Permission` model:
+
+```php
+$key->grantPermissions(Permission::create(['value' => 'ship_it']));
+$key->hasPermission(MyPermission::ViewProjects);  // a BackedEnum
+$key->hasPermission('view_projects');
 ```
 
 Set `default_permissions` in the config to grant a baseline set to every new key.

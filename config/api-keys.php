@@ -88,9 +88,15 @@ return [
     | Pivot tables follow the `_has_` convention (matching spatie/laravel-permission
     | and langsys). Override here if your app uses different names.
     |
+    | `permissions` is shared with langsys/laravel-access-guard, which creates
+    | the same table with the same shape — whichever package migrates first
+    | wins and the other skips. A table that exists with an incompatible shape
+    | fails at migrate time rather than silently at query time.
+    |
     */
     'tables' => [
         'api_keys' => 'api_keys',
+        'permissions' => 'permissions',
         'api_key_has_permissions' => 'api_key_has_permissions',
     ],
 

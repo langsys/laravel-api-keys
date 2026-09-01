@@ -2,20 +2,18 @@
 
 namespace Langsys\ApiKeys\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class ApiKeyPermission extends Model
+/**
+ * The api_keys ↔ permissions pivot. Keyed by (permission_id, api_key_id); it
+ * carries no surrogate id of its own.
+ */
+class ApiKeyPermission extends Pivot
 {
-    protected $fillable = ['api_key_id', 'permission'];
+    public $incrementing = false;
 
     public function getTable(): string
     {
         return config('api-keys.tables.api_key_has_permissions', 'api_key_has_permissions');
-    }
-
-    public function apiKey(): BelongsTo
-    {
-        return $this->belongsTo(ApiKey::class, 'api_key_id');
     }
 }
