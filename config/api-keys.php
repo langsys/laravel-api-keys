@@ -42,7 +42,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | When enabled, keys of type `read` may only perform safe (GET/HEAD/OPTIONS)
-    | requests; mutating requests require a `write` key.
+    | requests; mutating requests require a `write` key, or an `ip_write` key
+    | calling from an address on its allow-list.
+    |
+    | SECURITY (`ip_write` only): the client address comes from $request->ip(),
+    | which honours X-Forwarded-For only for proxies your app trusts. Laravel
+    | trusts none by default — safe. An app that trusts every proxy
+    | (TrustProxies at: '*') lets any caller forge the address and walk through
+    | the allow-list. Trust specific proxies, or override clientIp() on your key
+    | model to read what your edge sets.
+    |
+    | Set this to false to skip the package's check entirely and enforce write
+    | access yourself downstream.
     |
     */
     'enforce_read_write' => true,

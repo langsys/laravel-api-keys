@@ -35,11 +35,17 @@ class AuthenticateApiKey
         }
 
         if (config('api-keys.enforce_read_write', true) && ! $this->methodAllowed($request, $apiKey)) {
-            return $this->deny('This API key is read-only.', 403);
+            return $this->deny($apiKey->type === ApiKeyType::IP_WRITE
+                ? 'This API key may only write from an allow-listed IP address.'
+                : 'This API key is read-only.', 403);
         }
 
         $requestId = (string) Str::uuid();
         $request->headers->set('X-Request-ID', $requestId);
+        // Also exposed as an attribute: unlike the header, this cannot be set by
+        // the caller or overwritten by another middleware, so it is safe to use
+        // as a correlation key.
+        $request->attributes->set('api_key_request_id', $requestId);
         $request->attributes->set('api_key', $apiKey);
         app()->instance('api-keys.current', $apiKey);
 
@@ -57,7 +63,7 @@ class AuthenticateApiKey
             return true;
         }
 
-        return $apiKey->type === ApiKeyType::WRITE;
+        return $apiKey->allowsWrite($request);
     }
 
     private function deny(string $message, int $status): Response
