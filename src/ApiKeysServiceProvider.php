@@ -22,9 +22,15 @@ class ApiKeysServiceProvider extends ServiceProvider
                 __DIR__ . '/../config/api-keys.php' => config_path('api-keys.php'),
             ], 'api-keys-config');
 
-            $this->publishesMigrations([
-                __DIR__ . '/../database/migrations' => database_path('migrations'),
-            ], 'api-keys-migrations');
+            // publishesMigrations() only exists on Laravel 11+; plain publishes()
+            // covers Laravel 10 (illuminate/support ^10 is supported).
+            $migrations = [__DIR__ . '/../database/migrations' => database_path('migrations')];
+
+            if (method_exists($this, 'publishesMigrations')) {
+                $this->publishesMigrations($migrations, 'api-keys-migrations');
+            } else {
+                $this->publishes($migrations, 'api-keys-migrations');
+            }
         }
     }
 }
