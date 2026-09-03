@@ -93,12 +93,17 @@ class IpWriteTest extends TestCase
             ->assertOk();
     }
 
-    public function test_an_ip_write_key_without_an_allowlist_is_rejected_at_write_time(): void
+    /**
+     * An empty allow-list is NOT rejected. It looks like a key that can never
+     * write, but extraWriteAllowances() may authorise writes by other means —
+     * see SubclassExtensionTest. The package cannot know, so it does not guess.
+     */
+    public function test_an_ip_write_key_without_an_allowlist_is_allowed_but_cannot_write_on_its_own(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('requires a non-empty ip_allowlist');
+        $key = ApiKey::create(['name' => 'test', 'type' => 'ip_write']);
 
-        ApiKey::create(['name' => 'test', 'type' => 'ip_write']);
+        $this->assertSame(ApiKeyType::IP_WRITE, $key->type);
+        $this->assertFalse($key->allowsWrite($this->writeRequest('203.0.113.5')));
     }
 
     public function test_a_malformed_allowlist_entry_is_rejected_at_write_time(): void
@@ -123,7 +128,16 @@ class IpWriteTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
+        $key->update(['ip_allowlist' => ['0.0.0.0/0']]);
+    }
+
+    public function test_emptying_an_allowlist_on_update_is_permitted(): void
+    {
+        $key = ApiKey::create(['name' => 'test', 'type' => 'ip_write', 'ip_allowlist' => ['203.0.113.0/24']]);
+
         $key->update(['ip_allowlist' => []]);
+
+        $this->assertSame([], $key->fresh()->writeIpAllowlist());
     }
 
     public function test_read_and_write_keys_skip_allowlist_validation(): void

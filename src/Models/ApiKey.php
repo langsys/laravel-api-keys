@@ -342,10 +342,15 @@ class ApiKey extends Model
     }
 
     /**
-     * An IP_WRITE key with no usable allow-list can never write, and one with a
-     * malformed entry silently never matches. Both are configuration mistakes
-     * that would surface as an unexplained 403 at request time, so reject them
-     * at write time instead.
+     * A malformed allow-list entry silently never matches, surfacing as an
+     * unexplained 403 at request time, so reject it at write time instead.
+     *
+     * Note what is deliberately NOT checked: that the allow-list is non-empty.
+     * An empty one looks like a key that can never write, but extraWriteAllowances()
+     * exists precisely so an application can authorise writes by means this
+     * package knows nothing about — attestation, a signed grant. Asserting
+     * non-emptiness here would refuse to persist a configuration the package's
+     * own extension point makes valid.
      */
     protected function assertWriteConfigurationIsSafe(): void
     {
@@ -353,15 +358,7 @@ class ApiKey extends Model
             return;
         }
 
-        $entries = $this->writeIpAllowlist();
-
-        if ($entries === []) {
-            throw new InvalidArgumentException(
-                'An ip_write API key requires a non-empty ip_allowlist; without one it could never write.'
-            );
-        }
-
-        foreach ($entries as $entry) {
+        foreach ($this->writeIpAllowlist() as $entry) {
             if (! IpMatcher::isValidEntry($entry)) {
                 throw new InvalidArgumentException(sprintf(
                     'Invalid ip_allowlist entry [%s]. Use an exact IPv4/IPv6 address, or a CIDR range '

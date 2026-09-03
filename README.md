@@ -81,14 +81,19 @@ unparseable address, a malformed entry, a mismatched address family, or an empty
 allow-list all deny the write. A `/0` prefix is rejected outright — as an
 allow-list entry it would authorise every address, which is never intended.
 
-Because a key that can never write is a silent misconfiguration, an `ip_write`
-key with an empty or malformed allow-list is rejected when you save it rather
-than 403-ing mysteriously later:
+A malformed entry silently never matches, so it is rejected when you save the
+key rather than 403-ing mysteriously later:
 
 ```php
-ApiKey::create(['name' => 'oops', 'type' => 'ip_write']);
-// InvalidArgumentException: An ip_write API key requires a non-empty ip_allowlist…
+ApiKey::create(['name' => 'oops', 'type' => 'ip_write', 'ip_allowlist' => ['nonsense']]);
+// InvalidArgumentException: Invalid ip_allowlist entry [nonsense]…
 ```
+
+An **empty** allow-list is permitted. It looks like a key that can never write,
+but `extraWriteAllowances()` (below) exists so an application can authorise
+writes by means this package knows nothing about — device attestation, a signed
+grant — and an attestation-only key legitimately has no addresses at all. The
+package cannot know whether another path exists, so it does not guess.
 
 > **Security — read this before using `ip_write` behind a proxy.**
 > The address is taken from `$request->ip()`, which honours `X-Forwarded-For`

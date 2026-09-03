@@ -55,6 +55,33 @@ class SubclassExtensionTest extends TestCase
         $this->assertTrue($key->allowsWrite($this->writeRequest('192.0.2.7')));
     }
 
+    /**
+     * Regression: an ip_write key with NO allow-list, writing purely through
+     * extraWriteAllowances() (device attestation, a signed grant). The package
+     * used to refuse to save this, which contradicted its own extension point —
+     * and refused it for ip_write while permitting the identical setup on a
+     * read key, punishing the stricter type.
+     */
+    public function test_an_ip_write_key_may_rely_solely_on_extra_write_allowances(): void
+    {
+        $key = GrantingApiKey::create(['name' => 'attested', 'type' => 'ip_write']);
+
+        $this->assertSame([], $key->writeIpAllowlist());
+        $this->assertFalse($key->allowsWrite($this->writeRequest()));
+
+        $granted = $this->writeRequest();
+        $granted->headers->set('X-Grant', 'let-me-in');
+
+        $this->assertTrue($key->allowsWrite($granted));
+    }
+
+    public function test_a_malformed_entry_is_still_rejected_on_a_key_that_uses_the_hook(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        GrantingApiKey::create(['name' => 'attested', 'type' => 'ip_write', 'ip_allowlist' => ['nonsense']]);
+    }
+
     public function test_client_ip_resolution_can_be_overridden(): void
     {
         $key = EdgeApiKey::create([
