@@ -142,11 +142,32 @@ class ApiKey extends \Langsys\ApiKeys\Models\ApiKey
 }
 ```
 
-When subclassing, remember that Eloquent's `$fillable`, `$hidden` and `$casts`
-**replace** rather than merge. In particular keep `'type' => ApiKeyType::class`
-in `$casts` — without it the middleware's type check silently denies every
-write. If you must keep your own enum for `type`, cast to it and set
-`enforce_read_write => false` so the package stops making that decision at all.
+### Things that bite when subclassing
+
+Every one of these has caught a real integration:
+
+- **`$fillable`, `$hidden` and `$casts` replace rather than merge.** In
+  particular keep `'type' => ApiKeyType::class` in `$casts` — without it the
+  middleware's type check silently denies every write. Keep `key_hash` in
+  `$hidden` or you will serialize hashes. If you must keep your own enum for
+  `type`, cast to it and set `enforce_read_write => false` so the package stops
+  making that decision at all.
+- **`getByKey()` does not filter by `active`.** That is deliberate — the
+  middleware checks `active` separately, and callers may want to distinguish
+  "unknown key" from "revoked key". But if you call `getByKey()` yourself as an
+  authentication path, check `active` too, or override it. `isValidKey()`
+  already does both.
+- **The package registers its model hooks in `booted()`, not `boot()`.** Key
+  generation, the `type`/`active` defaults, default permissions and the
+  lifecycle events all live there. `Model::boot()` only boots traits;
+  `booted()` is invoked separately by `bootIfNotBooted()`. So a test helper
+  that flushes model event listeners and then calls `boot()` to restore them
+  will *not* restore these, and the failure is silent — the row saves, it just
+  has no `key_hash`. If you flush listeners, re-run `bootIfNotBooted()` or
+  reset the model's booted state.
+- **If you override `booted()` yourself, call `parent::booted()`.** Eloquent
+  does not chain it for you, and skipping it loses everything in the first
+  bullet's list at once.
 
 ## Permissions
 
