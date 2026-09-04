@@ -13,7 +13,9 @@ return new class extends Migration
 
         // Shared with langsys/laravel-access-guard, which creates the same table
         // with the same shape — whichever package migrates first wins and the
-        // other skips.
+        // other skips. Both must be pointed at the same table to share it.
+        SchemaGuard::assertSharedPermissionsTable($name);
+
         if (! SchemaGuard::shouldCreate($name, ['id', 'value'], 'a uuid `id` primary key and a unique string `value`')) {
             return;
         }

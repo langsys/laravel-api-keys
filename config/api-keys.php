@@ -93,6 +93,12 @@ return [
     | wins and the other skips. A table that exists with an incompatible shape
     | fails at migrate time rather than silently at query time.
     |
+    | If access-guard is installed, this key MUST agree with
+    | `access-guard.tables.permissions`: the two packages share one table and
+    | reference its rows by id, so setting one without the other would produce
+    | two separate permission tables. The migration refuses to run if they
+    | disagree rather than leaving you to find out later.
+    |
     */
     'tables' => [
         'api_keys' => 'api_keys',

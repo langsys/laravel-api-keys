@@ -27,6 +27,9 @@
         "orchestra/testbench": "^8.0|^9.0|^10.0",
         "phpunit/phpunit": "^10.0|^11.0"
     },
+    "suggest": {
+        "langsys/laravel-access-guard": "Roles, entity-scoped permissions, and API keys as first-class authorization subjects."
+    },
     "autoload": {
         "psr-4": {
             "Langsys\\ApiKeys\\": "src/"

@@ -110,6 +110,46 @@ class PermissionStorageTest extends TestCase
     {
         $this->assertTrue(SchemaGuard::shouldCreate('does_not_exist', ['whatever'], 'x'));
     }
+
+    public function test_the_shared_permissions_check_is_inert_without_access_guard(): void
+    {
+        $this->assertFalse(config()->has('access-guard.tables.permissions'));
+
+        SchemaGuard::assertSharedPermissionsTable('permissions');
+        SchemaGuard::assertSharedPermissionsTable('anything_at_all');
+
+        $this->addToAssertionCount(2);
+    }
+
+    public function test_agreeing_config_keys_pass(): void
+    {
+        config()->set('access-guard.tables.permissions', 'acl_permissions');
+
+        SchemaGuard::assertSharedPermissionsTable('acl_permissions');
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_disagreeing_config_keys_fail_at_migrate_time(): void
+    {
+        config()->set('access-guard.tables.permissions', 'acl_permissions');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('[api-keys.tables.permissions] is [permissions]');
+        $this->expectExceptionMessage('[access-guard.tables.permissions] is [acl_permissions]');
+
+        SchemaGuard::assertSharedPermissionsTable('permissions');
+    }
+
+    public function test_the_migration_itself_refuses_to_run_on_disagreement(): void
+    {
+        config()->set('access-guard.tables.permissions', 'somewhere_else');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('share one permissions table');
+
+        (require __DIR__ . '/../database/migrations/2024_01_01_000002_create_permissions_table.php')->up();
+    }
 }
 
 enum TestPermission: string
