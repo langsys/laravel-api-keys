@@ -50,8 +50,12 @@ jobs:
             "orchestra/testbench:${{ matrix.testbench }}"
           composer update --prefer-dist --no-interaction --no-progress
 
+      # `composer show` takes one package at a time.
       - name: Report resolved versions
-        run: composer show laravel/framework orchestra/testbench phpunit/phpunit | grep -E '^(name|versions)'
+        run: |
+          for pkg in laravel/framework orchestra/testbench phpunit/phpunit; do
+            composer show "$pkg" | grep -E '^(name|versions)' || true
+          done
 
       - name: Run tests
         run: vendor/bin/phpunit
